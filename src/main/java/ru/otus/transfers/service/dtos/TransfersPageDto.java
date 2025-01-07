@@ -1,4 +1,4 @@
-package ru.otus.transfers.service.dtos.transfer;
+package ru.otus.transfers.service.dtos;
 
 import java.util.List;
 

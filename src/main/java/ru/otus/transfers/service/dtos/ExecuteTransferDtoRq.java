@@ -1,8 +1,6 @@
-package ru.otus.transfers.service.dtos.transfer;
+package ru.otus.transfers.service.dtos;
 
-public record TransferDto(
-        String id,
-        String clientId,
+public record ExecuteTransferDtoRq(
         String targetClientId,
         String sourceAccount,
         String targetAccount,
