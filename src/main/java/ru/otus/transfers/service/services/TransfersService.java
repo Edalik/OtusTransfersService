@@ -1,10 +1,13 @@
 package ru.otus.transfers.service.services;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import ru.otus.transfers.service.dtos.ExecuteTransferDtoRq;
+import ru.otus.transfers.service.dtos.transfer.ExecuteTransferDtoRq;
+import ru.otus.transfers.service.entities.Account;
 import ru.otus.transfers.service.entities.Transfer;
 import ru.otus.transfers.service.exceptions_handling.dtos.ValidationFieldError;
+import ru.otus.transfers.service.exceptions_handling.exceptions.BusinessLogicException;
 import ru.otus.transfers.service.exceptions_handling.exceptions.ValidationException;
 import ru.otus.transfers.service.repositories.TransfersRepository;
 
@@ -18,6 +21,8 @@ public class TransfersService {
 
     private final TransfersRepository transfersRepository;
 
+    private final AccountService accountService;
+
     public Optional<Transfer> getTransferById(String id, String clientId) {
         return transfersRepository.findByIdAndClientId(id, clientId);
     }
@@ -26,9 +31,11 @@ public class TransfersService {
         return transfersRepository.findAllByClientId(clientId);
     }
 
+
+    @Transactional
     public void execute(String clientId, ExecuteTransferDtoRq executeTransferDtoRq) {
         validateExecuteTransferDtoRq(executeTransferDtoRq);
-
+        executeTransfer(clientId, executeTransferDtoRq);
     }
 
     private void validateExecuteTransferDtoRq(ExecuteTransferDtoRq executeTransferDtoRq) {
@@ -45,6 +52,44 @@ public class TransfersService {
         if (!errors.isEmpty()) {
             throw new ValidationException("EXECUTE_TRANSFER_VALIDATION_ERROR", "Проблемы заполнения полей перевода", errors);
         }
+    }
+
+    @Transactional
+    protected void executeTransfer(String clientId, ExecuteTransferDtoRq executeTransferDtoRq) {
+        String sourceAccountNumber = executeTransferDtoRq.sourceAccount();
+        String targetAccountNumber = executeTransferDtoRq.targetAccount();
+        Integer transferAmount = executeTransferDtoRq.amount();
+
+        Account sourceAccount = accountService.findByAccountNumberAndClientId(sourceAccountNumber, clientId)
+                .orElseThrow(() -> new BusinessLogicException("Счет отправителя не найден", ""));
+
+        if (sourceAccount.isBlocked()) {
+            throw new BusinessLogicException("Счет отправителя заблокирован", "");
+        }
+
+        if (!accountService.existsByAccountNumber(targetAccountNumber)) {
+            throw new BusinessLogicException("Счет получателя не найден", "");
+        }
+        if (accountService.isBlocked(targetAccountNumber)) {
+            throw new BusinessLogicException("Счет получателя заблокирован", "");
+        }
+
+        if (sourceAccount.getBalance() - transferAmount < 0) {
+            throw new BusinessLogicException("Недостаточно средств", "");
+        }
+
+        Transfer transfer = Transfer.builder()
+                .clientId(clientId)
+                .targetClientId(executeTransferDtoRq.targetClientId())
+                .sourceAccount(sourceAccountNumber)
+                .targetAccount(targetAccountNumber)
+                .message(executeTransferDtoRq.message())
+                .amount(transferAmount)
+                .build();
+
+        transfersRepository.save(transfer);
+
+        accountService.makeTransfer(sourceAccountNumber, targetAccountNumber, transferAmount);
     }
 
 }
