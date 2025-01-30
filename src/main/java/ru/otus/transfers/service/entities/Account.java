@@ -7,39 +7,31 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
 @Entity
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "transfers")
-public class Transfer {
+@Table(name = "account")
+public class Account {
 
     @Id
     @Column(name = "id")
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
+    @Column(name = "account_number")
+    private String accountNumber;
+
     @Column(name = "client_id")
     private String clientId;
 
-    @Column(name = "target_client_id")
-    private String targetClientId;
+    @Column(name = "balance")
+    private Integer balance;
 
-    @Column(name = "source_account")
-    private String sourceAccount;
-
-    @Column(name = "target_account")
-    private String targetAccount;
-
-    @Column(name = "message")
-    private String message;
-
-    @Column(name = "amount")
-    private Integer amount;
+    @Column(name = "is_blocked")
+    private boolean isBlocked;
 
 }
