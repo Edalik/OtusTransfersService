@@ -12,6 +12,7 @@ import ru.otus.transfers.service.exceptions_handling.exceptions.ResourceNotFound
 import ru.otus.transfers.service.mappers.AccountMapper;
 import ru.otus.transfers.service.services.AccountService;
 
+import java.util.List;
 import java.util.stream.Collectors;
 
 @RestController
@@ -27,13 +28,13 @@ public class AccountController {
 
     @GetMapping
     public AccountPageDto getAllTransfers(@RequestHeader(name = CLIENT_ID) String clientId) {
-        return new AccountPageDto(
-                accountService
-                        .getAllTransfers(clientId)
-                        .stream()
-                        .map(accountMapper::entityToDTO)
-                        .collect(Collectors.toList())
-        );
+        List<AccountDTO> accountDTOs = accountService
+                .getAllTransfers(clientId)
+                .stream()
+                .map(accountMapper::entityToDTO)
+                .toList();
+
+        return new AccountPageDto(accountDTOs);
     }
 
     @GetMapping("/{id}")
